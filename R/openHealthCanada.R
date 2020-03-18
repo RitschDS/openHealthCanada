@@ -22,3 +22,19 @@ recent_recalls <- function(lang = "en", tibble = TRUE) {
   else
     results
 }
+
+search_recalls <- function(text="",
+                           lang="en",
+                           lim="999",
+                           cat="",
+                           off="",
+                           tibble = TRUE){
+
+  request <- glue::glue("{base_uri()}/search?search={text}&lang={lang}&lim={lim}&cat={cat}&off={off}")
+  results <- jsonlite::fromJSON(request)
+
+  if (tibble)
+    lapply(results, tibble::as_tibble)
+  else
+    results
+}

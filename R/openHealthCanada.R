@@ -49,7 +49,6 @@ recent_recalls <- function(lang = "en", tibble = TRUE) {
 #'  str(x, max.level = 1)
 #'
 #'  @export
-
 search_recalls <- function(text="",
                            lang="en",
                            lim="999",
@@ -64,4 +63,47 @@ search_recalls <- function(text="",
     lapply(results, tibble::as_tibble)
   else
     results
+}
+
+
+
+get_recall_detail <- function(recall.id) {
+  # Read in Raw Recall
+  request <- glue::glue("{base_uri()}/{recall.id}/en")
+  result_raw <- jsonlite::fromJSON(request)
+
+  if (names(result_raw)[1] == "error"){
+
+    return("Error")
+
+  } else {
+
+  # Detect constants (i.e. url, recallID, title, start_date) and nested vars
+  dt <- vapply(result_raw,is.list,as.logical(1))
+
+  # Store constants in dataframe
+  recall_cst <- result_raw[names(dt[dt == FALSE])]
+  recall_cst_df <-as.data.frame(recall_cst,stringsAsFactors = FALSE)
+
+  # Detect list and depth
+  recall_nst <- result_raw[names(dt[dt == TRUE])]
+  recall_nst_df <- as.data.frame(recall_nst)
+
+  # Unnest lists
+  recall_unnst_df <-
+    tidyr::spread(data = recall_nst_df[, c("panels.panelName", "panels.text")],
+                  key = panels.panelName,
+                  value = panels.text)
+
+  # Parse basic details
+  recall_basic_df <-parse_basic_details(recall_cst_df$url)
+
+  # Column Bind Constants and Unnested Lists
+  recall_bd <- cbind(recall_cst_df,recall_unnst_df,recall_basic_df)
+
+  # tidyr::gather(data = recall_bd,
+  #               key = "Product",
+  #               value = "Value",
+  #               names(recall_bd[,grepl("product",names(recall_bd),ignore.case = TRUE)]))
+  }
 }
